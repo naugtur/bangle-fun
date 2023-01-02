@@ -1,11 +1,11 @@
-const stateSample = [
-  // board
-  [4, 4, 4, 5, 5, 5], // their
-  [4, 4, 4, 4, 0, 5], // mine
-  [0, 0], // scores their,mine
-  [-1, -1, -1, 5], // prev 4 moves, -1 denotes undefined
-  1,
-];
+// const stateSample = [
+//   // board
+//   [4, 4, 4, 5, 5, 5], // their
+//   [4, 4, 4, 4, 0, 5], // mine
+//   [0, 0], // scores their,mine
+//   [-1, -1, -1, 5], // prev 4 moves, -1 denotes undefined
+//   1,
+// ];
 
 const getInitialState = () => [
   [4, 4, 4, 4, 4, 4], // their
@@ -57,22 +57,27 @@ const game = (state, players) => {
 
   function distribute(pointer, stash = 0) {
     console.error({ pointer, stash });
-    if (stash === 0) {
+
+    state[pointer[0]][pointer[1]] += 1;
+    stash -= 1;
+    if (stash < 1) {
       return pointer;
     }
-    state[pointer[0]][pointer[1]] += 1;
-    return distribute(NEXT(pointer), stash - 1);
+    return distribute(NEXT(pointer), stash);
   }
 
   function score(pointer) {
     if (pointer[0] === 1 || pointer[1] > 5) return;
     const grab = state[pointer[0]][pointer[1]];
     if (grab === 3 || grab === 2) {
+      console.log({ grab, pointer });
       state[pointer[0]][pointer[1]] = 0;
       state[2][1] += grab;
       score([0, pointer[1] + 1]);
     }
   }
+
+  const illegalMove = (field) => field < 0 || field > 5 || !state[1][field];
 
   const move = (field) => {
     rememberMove(field);
@@ -87,7 +92,11 @@ const game = (state, players) => {
   const turn = () => {
     rotateBoard();
     const field = players[1].think(state);
-    move(field);
+    if (illegalMove(field)) {
+      players[1]?.punish();
+    } else {
+      move(field);
+    }
     state[4] += 1;
   };
 
@@ -104,23 +113,12 @@ const game = (state, players) => {
   };
 };
 
-const player = (name) => {
-  return {
-    think: (state) => Math.floor(Math.random() * 6),
-    name,
-  };
-};
-
-function run() {
+function run(playerA, playerB) {
   const state = getInitialState();
-  const game1 = game(state, [player("A"), player("B")]);
-
-  // setInterval(() => {
-  //   draw(state);
-  //   game1.turn();
-  // }, 5000);
+  const game1 = game(state, [playerA("A"), playerB("B")]);
   try {
     while (true) {
+      game1.turn();
       game1.turn();
       game1.print();
     }
@@ -129,4 +127,25 @@ function run() {
     game1.print();
   }
 }
-run();
+function compare(playerA, playerB) {
+  const state = getInitialState();
+  const game1 = game(state, [playerA("A"), playerB("B")]);
+  try {
+    while (true) {
+      game1.turn();
+      game1.turn();
+      game1.print();
+    }
+  } catch (e) {
+    // figure out who won
+  }
+}
+module.exports = {
+  run,
+
+  getGame: () => {
+    const state = getInitialState();
+    return game(state, [playerA("A"), playerB("B")]);
+  },
+  sampleState: getInitialState(),
+};
